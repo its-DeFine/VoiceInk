@@ -116,6 +116,15 @@ jobs:
 
           app="$derived/Build/Products/Debug/VoiceInk.app"
           test -d "$app"
+          # Match the installed local app's permissions, without Debug's injected
+          # get-task-allow entitlement, on both executable bundles.
+          for bundle in "$app/Contents/XPCServices/VoiceInkRefineXPC.xpc" "$app"; do
+            codesign --force --sign - \
+              --entitlements VoiceInk/VoiceInk.local.entitlements "$bundle"
+            codesign -d --entitlements :- "$bundle" 2>/dev/null \
+              | python3 -c 'import plistlib, sys; actual = plistlib.loads(sys.stdin.buffer.read()); expected = plistlib.load(open(sys.argv[1], "rb")); assert actual == expected, "unexpected local app entitlements"' \
+                VoiceInk/VoiceInk.local.entitlements
+          done
           test "$(git -C "$derived/SourcePackages/checkouts/Zip" rev-parse HEAD)" = \
             bca30f6d6c7d37cbc4aa8f6b0002e281dcc36195
           file "$app/Contents/MacOS/VoiceInk" | grep -q 'arm64'
