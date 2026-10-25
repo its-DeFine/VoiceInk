@@ -52,6 +52,7 @@ jobs:
           grep -q 'Swift version 6.3' "$RUNNER_TEMP/swift-version.txt"
           xcodebuild -help > "$RUNNER_TEMP/xcodebuild-help.txt" 2>&1
           grep -q -- '-skipMacroValidation' "$RUNNER_TEMP/xcodebuild-help.txt"
+          grep -q -- '-skipPackagePluginValidation' "$RUNNER_TEMP/xcodebuild-help.txt"
           grep -q -- '-onlyUsePackageVersionsFromResolvedFile' "$RUNNER_TEMP/xcodebuild-help.txt"
           grep -q -- '-disableAutomaticPackageResolution' "$RUNNER_TEMP/xcodebuild-help.txt"
           derived="$RUNNER_TEMP/VoiceInkDerivedData"
@@ -110,6 +111,7 @@ jobs:
             -disableAutomaticPackageResolution \
             -onlyUsePackageVersionsFromResolvedFile \
             -skipMacroValidation \
+            -skipPackagePluginValidation \
             build
 
           app="$derived/Build/Products/Debug/VoiceInk.app"
