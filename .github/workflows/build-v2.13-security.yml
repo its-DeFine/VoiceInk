@@ -1,0 +1,78 @@
+name: Build VoiceInk 2.13 security patch
+
+on:
+  push:
+    branches:
+      - security/v2.13-zip-cve-local-20261025
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Verify bounded source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=68b871e79e2b1ec4c3b4914cccd2e0907d94237a
+          git merge-base --is-ancestor "$base" HEAD
+          actual="$(git diff --name-only "$base" HEAD | sort)"
+          expected="$(printf '%s\n' \
+            .github/workflows/build-v2.13-security.yml \
+            VoiceInk.xcodeproj/project.pbxproj \
+            VoiceInk.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
+            | sort)"
+          test "$actual" = "$expected"
+
+      - name: Build local arm64 app
+        shell: bash
+        run: |
+          set -euo pipefail
+          make check
+          make setup
+          derived="$RUNNER_TEMP/VoiceInkDerivedData"
+          xcodebuild \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk \
+            -configuration Debug \
+            -derivedDataPath "$derived" \
+            -xcconfig LocalBuild.xcconfig \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM= \
+            CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/VoiceInk/VoiceInk.local.entitlements" \
+            'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) LOCAL_BUILD' \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            build
+
+          app="$derived/Build/Products/Debug/VoiceInk.app"
+          test -d "$app"
+          test "$(git -C "$derived/SourcePackages/checkouts/Zip" rev-parse HEAD)" = \
+            bca30f6d6c7d37cbc4aa8f6b0002e281dcc36195
+          file "$app/Contents/MacOS/VoiceInk" | grep -q 'arm64'
+          codesign --verify --deep --strict "$app"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist" \
+            | grep -qx '2.13'
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$app" "$RUNNER_TEMP/VoiceInk-v2.13-zip-security-arm64.zip"
+          shasum -a 256 "$RUNNER_TEMP/VoiceInk-v2.13-zip-security-arm64.zip" \
+            | tee "$RUNNER_TEMP/VoiceInk-v2.13-zip-security-arm64.zip.sha256"
+
+      - name: Upload verified app
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: VoiceInk-v2.13-zip-security-arm64
+          path: |
+            ${{ runner.temp }}/VoiceInk-v2.13-zip-security-arm64.zip
+            ${{ runner.temp }}/VoiceInk-v2.13-zip-security-arm64.zip.sha256
+          if-no-files-found: error
+          retention-days: 1
