@@ -43,14 +43,19 @@ jobs:
           swift --version | grep -Eq 'Swift version 6\.[2-9]'
           xcodebuild -help > "$RUNNER_TEMP/xcodebuild-help.txt" 2>&1
           grep -q -- '-skipMacroValidation' "$RUNNER_TEMP/xcodebuild-help.txt"
+          grep -q -- '-onlyUsePackageVersionsFromResolvedFile' "$RUNNER_TEMP/xcodebuild-help.txt"
+          grep -q -- '-disableAutomaticPackageResolution' "$RUNNER_TEMP/xcodebuild-help.txt"
           derived="$RUNNER_TEMP/VoiceInkDerivedData"
           xcodebuild \
             -resolvePackageDependencies \
+            -onlyUsePackageVersionsFromResolvedFile \
             -project VoiceInk.xcodeproj \
             -scheme VoiceInk \
             -derivedDataPath "$derived"
           test "$(git -C "$derived/SourcePackages/checkouts/Zip" rev-parse HEAD)" = \
             bca30f6d6c7d37cbc4aa8f6b0002e281dcc36195
+          test "$(git -C "$derived/SourcePackages/checkouts/mlx-swift" rev-parse HEAD)" = \
+            0bb916c67f4b9e5c682cbe02a42c701c93ab5021
           make check
           make setup
           xcodebuild \
@@ -67,6 +72,8 @@ jobs:
             'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) LOCAL_BUILD' \
             ARCHS=arm64 \
             ONLY_ACTIVE_ARCH=NO \
+            -disableAutomaticPackageResolution \
+            -onlyUsePackageVersionsFromResolvedFile \
             -skipMacroValidation \
             build
 
