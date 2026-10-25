@@ -41,6 +41,8 @@ jobs:
           set -euo pipefail
           xcodebuild -version | grep -q 'Xcode 26.1.1'
           swift --version | grep -Eq 'Swift version 6\.[2-9]'
+          xcodebuild -help > "$RUNNER_TEMP/xcodebuild-help.txt" 2>&1
+          grep -q -- '-skipMacroValidation' "$RUNNER_TEMP/xcodebuild-help.txt"
           derived="$RUNNER_TEMP/VoiceInkDerivedData"
           xcodebuild \
             -resolvePackageDependencies \
@@ -65,6 +67,7 @@ jobs:
             'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) LOCAL_BUILD' \
             ARCHS=arm64 \
             ONLY_ACTIVE_ARCH=NO \
+            -skipMacroValidation \
             build
 
           app="$derived/Build/Products/Debug/VoiceInk.app"
