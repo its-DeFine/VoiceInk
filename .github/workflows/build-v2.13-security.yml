@@ -46,7 +46,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          xcodebuild -version | grep -q 'Xcode 26.3'
+          xcodebuild -version > "$RUNNER_TEMP/xcode-version.txt" 2>&1
+          grep -q 'Xcode 26.3' "$RUNNER_TEMP/xcode-version.txt"
           swiftc --version > "$RUNNER_TEMP/swift-version.txt" 2>&1
           grep -q 'Swift version 6.3' "$RUNNER_TEMP/swift-version.txt"
           xcodebuild -help > "$RUNNER_TEMP/xcodebuild-help.txt" 2>&1
