@@ -47,7 +47,8 @@ jobs:
         run: |
           set -euo pipefail
           xcodebuild -version | grep -q 'Xcode 26.3'
-          swift --version | grep -q 'Swift version 6.3'
+          swiftc --version > "$RUNNER_TEMP/swift-version.txt" 2>&1
+          grep -q 'Swift version 6.3' "$RUNNER_TEMP/swift-version.txt"
           xcodebuild -help > "$RUNNER_TEMP/xcodebuild-help.txt" 2>&1
           grep -q -- '-skipMacroValidation' "$RUNNER_TEMP/xcodebuild-help.txt"
           grep -q -- '-onlyUsePackageVersionsFromResolvedFile' "$RUNNER_TEMP/xcodebuild-help.txt"
